@@ -1,0 +1,19 @@
+{
+  "author": "Kai Mysliwiec",
+  "name": "tron",
+  "description": "A second screen game",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:kaimys/tron.git"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "socket.io-client": "0.9.6",
+    "express": "3.0.0beta4"
+  },
+  "devDependencies": {
+  }
+}
