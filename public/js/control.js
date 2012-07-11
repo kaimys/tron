@@ -89,16 +89,11 @@ function deviceMotionHandler(eventData) {
   var tiltFB = Math.round(((acceleration.y + 9.81) / 9.81) * 90 * facingUp);
 
   socket.emit('motion', eventData);
-  console.log(eventData);
   
   // Display the acceleration and calculated values
   document.getElementById("moAccel").innerHTML = rawAcceleration;
   document.getElementById("moCalcTiltLR").innerHTML = tiltLR;
   document.getElementById("moCalcTiltFB").innerHTML = tiltFB;
-
-  // Apply the 2D rotation and 3D rotation to the image
-  var rotation = "rotate(" + tiltLR + "deg) rotate3d(1,0,0, " + (tiltFB) + "deg)";
-  document.getElementById("imgLogo").style.webkitTransform = rotation;        
 }
 
 function deviceOrientationHandler(tiltLR, tiltFB, dir, motionUD) {
@@ -109,7 +104,6 @@ function deviceOrientationHandler(tiltLR, tiltFB, dir, motionUD) {
        'motionUD': motionUD
     };
     socket.emit('orientation', data);
-    console.log(data);
     document.getElementById("doTiltLR").innerHTML = Math.round(tiltLR);
     document.getElementById("doTiltFB").innerHTML = Math.round(tiltFB);
     document.getElementById("doDirection").innerHTML = Math.round(dir);

@@ -1,8 +1,9 @@
 var camera, scene, renderer, geometry, material, mesh;
 
+var socket;
 
 window.addEventListener('load', function() {
-    $('#qrcode').qrcode(document.location.href);
+    $('#qrcode').qrcode(document.location.href + 'control.html');
     
     //////////////////////////////////////////////////////////////////////////////////////////
     // Three.js
@@ -24,7 +25,7 @@ window.addEventListener('load', function() {
         mesh = new THREE.Mesh( geometry, material );
         scene.add( mesh );
 
-        renderer = new THREE.CanvasRenderer();
+        renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth / 2, window.innerHeight / 2 );
 
         document.getElementById('main').appendChild( renderer.domElement );
@@ -41,74 +42,18 @@ window.addEventListener('load', function() {
 
     function render() {
 
-        //mesh.rotation.x += 0.01;
-        //mesh.rotation.y += 0.02;
-
         renderer.render( scene, camera );
 
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////
-    // DeviceMotion
-    
-    if (window.DeviceMotionEvent) {
-        console.log("DeviceMotionEvent supported");
-        window.addEventListener('devicemotion', deviceMotionHandler, false);
-    } else {
-        document.getElementById("dmEvent").innerHTML = "devicemotion not supported on your device."
-    }
 
-    //////////////////////////////////////////////////////////////////////////////////////////
-    // DeviceOrientation
-
-    if (window.DeviceOrientationEvent) {
-        document.getElementById("doEvent").innerHTML = "DeviceOrientation";
-        // Listen for the deviceorientation event and handle the raw data
-        window.addEventListener('deviceorientation', function(eventData) {
-            // gamma is the left-to-right tilt in degrees, where right is positive
-            var tiltLR = eventData.gamma;
-
-            // beta is the front-to-back tilt in degrees, where front is positive
-            var tiltFB = eventData.beta;
-
-            // alpha is the compass direction the device is facing in degrees
-            var dir = eventData.alpha
-
-            // deviceorientation does not provide this data
-            var motUD = null;
-
-            // call our orientation event handler
-            deviceOrientationHandler(tiltLR, tiltFB, dir, motUD);
-        }, false);
-    } else if (window.OrientationEvent) {
-        document.getElementById("doEvent").innerHTML = "MozOrientation";
-        window.addEventListener('MozOrientation', function(eventData) {
-            // x is the left-to-right tilt from -1 to +1, so we need to convert to degrees
-            var tiltLR = eventData.x * 90;
-
-            // y is the front-to-back tilt from -1 to +1, so we need to convert to degrees
-            // We also need to invert the value so tilting the device towards us (forward) 
-            // results in a positive value. 
-            var tiltFB = eventData.y * -90;
-
-            // MozOrientation does not provide this data
-            var dir = null;
-
-            // z is the vertical acceleration of the device
-            var motUD = eventData.z;
-
-            // call our orientation event handler
-            deviceOrientationHandler(tiltLR, tiltFB, dir, motUD);
-        }, false);
-    } else {
-        document.getElementById("doEvent").innerHTML = "Not supported on your device or browser."
-    }
-
-//    var socket = io.connect('http://localhost');
-//    socket.on('news', function (data) {
-//      console.log(data);
-//      socket.emit('my other event', { my: 'data' });
-//    });
+    socket = io.connect('http://localhost:7777');
+    socket.on('motion', function (data) {
+      deviceMotionHandler(data);
+    });
+    socket.on('orientation', function (data) {
+      deviceOrientationHandler(data.tiltLR, data.tiltFB, data.dir, data.motionUD);
+    });
 }, false);
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -139,14 +84,9 @@ function deviceMotionHandler(eventData) {
   document.getElementById("moAccel").innerHTML = rawAcceleration;
   document.getElementById("moCalcTiltLR").innerHTML = tiltLR;
   document.getElementById("moCalcTiltFB").innerHTML = tiltFB;
-
-  // Apply the 2D rotation and 3D rotation to the image
-  var rotation = "rotate(" + tiltLR + "deg) rotate3d(1,0,0, " + (tiltFB) + "deg)";
-  document.getElementById("imgLogo").style.webkitTransform = rotation;        
 }
 
 function deviceOrientationHandler(tiltLR, tiltFB, dir, motionUD) {
-    
     
     mesh.rotation.x = tiltFB / 90;
     mesh.rotation.y = tiltLR / 90;
