@@ -1,9 +1,12 @@
-var camera, scene, renderer, geometry, material, mesh;
+var camera, scene, renderer, geometry, material, mesh, clock;
 
 var socket;
 
+var rad = 180 / Math.PI;
+
 window.addEventListener('load', function() {
-    $('#qrcode').qrcode(document.location.href + 'control.html');
+    var loc = document.location;
+    $('#qrcode').qrcode({width: 128,height: 128, text: 'http://' + loc.host + '/control.html'});
     
     //////////////////////////////////////////////////////////////////////////////////////////
     // Three.js
@@ -12,21 +15,30 @@ window.addEventListener('load', function() {
     animate();
 
     function init() {
+        
+        clock = new THREE.Clock();
+        clock.start();
 
         scene = new THREE.Scene();
 
-        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight / 0.75, 1, 10000 );
         camera.position.z = 1000;
         scene.add( camera );
 
         geometry = new THREE.CubeGeometry( 400, 400, 400 );
-        material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+        //var qr = document.getElementById('qrcode').firstChild.toDataURL();
+        material = new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( '/img/qrcode.png' ) } );
 
         mesh = new THREE.Mesh( geometry, material );
         scene.add( mesh );
+        
+        var light = new THREE.PointLight( 0xFFFFDD );
+        light.position.set( 300, 1000, 500 );
+        scene.add( light );
+        scene.add( new THREE.AmbientLight( 0xFFDDDD ) );
 
         renderer = new THREE.WebGLRenderer();
-        renderer.setSize( window.innerWidth / 2, window.innerHeight / 2 );
+        renderer.setSize( window.innerWidth, window.innerHeight * 0.75 );
 
         document.getElementById('main').appendChild( renderer.domElement );
 
@@ -47,7 +59,7 @@ window.addEventListener('load', function() {
     }
 
 
-    socket = io.connect('http://localhost:7777');
+    socket = io.connect('http://' + loc.hostname);
     socket.on('motion', function (data) {
       deviceMotionHandler(data);
     });
@@ -59,7 +71,31 @@ window.addEventListener('load', function() {
 //////////////////////////////////////////////////////////////////////////////////////////
 // DeviceMotion
 
+var vx = 0.0, vy = 0.0, vz = 0.0;
+var oldAccel;
+var damp = 0.6, grav = 0.005;
+
 function deviceMotionHandler(eventData) {
+  
+  //Calc position from acceleration
+  var dt = clock.getDelta() * 100.0;
+  if(oldAccel) {
+      vx *= damp;
+      vy *= damp;
+      vz *= damp;
+      vx -= (oldAccel.x + eventData.acceleration.x) / 2.0 * dt;
+      vy -= (oldAccel.y + eventData.acceleration.y) / 2.0 * dt;
+      vz -= (oldAccel.z + eventData.acceleration.z) / 2.0 * dt;
+      vx -= mesh.position.x * grav;
+      vy -= mesh.position.y * grav;
+      vz -= mesh.position.z * grav;
+      //console.log(vx,vy,vz);
+      mesh.position.x += dt * vx;
+      mesh.position.y += dt * vy;
+      mesh.position.z += dt * vz;
+  }
+  oldAccel = eventData.acceleration;
+  
   // Grab the acceleration including gravity from the results
   var acceleration = eventData.accelerationIncludingGravity;
 
@@ -88,8 +124,9 @@ function deviceMotionHandler(eventData) {
 
 function deviceOrientationHandler(tiltLR, tiltFB, dir, motionUD) {
     
-    mesh.rotation.x = tiltFB / 90;
-    mesh.rotation.y = tiltLR / 90;
+    mesh.rotation.x = tiltFB / rad;
+    mesh.rotation.y = tiltLR / rad;
+    mesh.rotation.z = dir / rad;
     
     document.getElementById("doTiltLR").innerHTML = Math.round(tiltLR);
     document.getElementById("doTiltFB").innerHTML = Math.round(tiltFB);

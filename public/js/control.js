@@ -3,14 +3,14 @@ var camera, scene, renderer, geometry, material, mesh;
 var socket;
 
 window.addEventListener('load', function() {
-    
-    socket = io.connect('http://localhost:7777');
+    var loc = document.location;
+    socket = io.connect('http://' + loc.hostname);
 
     //////////////////////////////////////////////////////////////////////////////////////////
     // DeviceMotion
     
     if (window.DeviceMotionEvent) {
-        console.log("DeviceMotionEvent supported");
+        document.getElementById("dmEvent").innerHTML = "DeviceMotionEvent supported";
         window.addEventListener('devicemotion', deviceMotionHandler, false);
     } else {
         document.getElementById("dmEvent").innerHTML = "devicemotion not supported on your device."
@@ -68,7 +68,13 @@ window.addEventListener('load', function() {
 // DeviceMotion
 
 function deviceMotionHandler(eventData) {
-  // Grab the acceleration including gravity from the results
+  var data = {
+      'accelerationIncludingGravity': eventData.accelerationIncludingGravity,
+      'acceleration': eventData.acceleration
+  };
+  socket.emit('motion', data);
+
+// Grab the acceleration including gravity from the results
   var acceleration = eventData.accelerationIncludingGravity;
 
   // Display the raw acceleration data
@@ -87,8 +93,6 @@ function deviceMotionHandler(eventData) {
   // by 90 to convert to degrees.                                
   var tiltLR = Math.round(((acceleration.x) / 9.81) * -90);
   var tiltFB = Math.round(((acceleration.y + 9.81) / 9.81) * 90 * facingUp);
-
-  socket.emit('motion', eventData);
   
   // Display the acceleration and calculated values
   document.getElementById("moAccel").innerHTML = rawAcceleration;
